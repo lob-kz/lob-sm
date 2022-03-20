@@ -80,6 +80,14 @@ public void OnAllPluginsLoaded()
 	gB_BaseComm = LibraryExists("basecomm");
 
 	gH_DB = GOKZ_DB_GetDatabase();
+
+	for (int client = 1; client < MaxClients; client++)
+	{
+		if (IsValidClient(client) && !IsFakeClient(client))
+		{
+			UpdateTags(client, GOKZ_GetCoreOption(client, Option_Mode));
+		}
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -158,6 +166,19 @@ public void GOKZ_OnOptionsLoaded(int client)
 	{
 		int mode = GOKZ_GetCoreOption(client, Option_Mode);
 		UpdateTags(client, GOKZ_PF_GetRank(client, mode));
+	}
+}
+
+public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
+{
+	Option coreOption;
+	if (GOKZ_IsCoreOption(option, coreOption) && coreOption == Option_Mode)
+	{
+		UpdateTags(client, newValue);
+	}
+	else if (StrEqual(option, gC_ProfileOptionNames[ProfileOption_ShowRankChat], true))
+	{
+		UpdateTags(client, GOKZ_GetCoreOption(client, Option_Mode));
 	}
 }
 
