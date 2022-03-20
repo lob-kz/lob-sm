@@ -15,7 +15,6 @@
 #undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <basecomm>
-#include <gokz/global>
 #include <gokz/profile>
 
 #define REQUIRE_EXTENSIONS
@@ -53,7 +52,6 @@ ConVar gCV_whitelist_completion;
 #include "lob-completion/db/helpers.sp"
 #include "lob-completion/db/load_completion.sp"
 #include "lob-completion/db/completion_top.sp"
-#include "lob-completion/profiles.sp"
 
 
 // =====[ PLUGIN EVENTS ]=====
@@ -80,14 +78,6 @@ public void OnAllPluginsLoaded()
 	gB_BaseComm = LibraryExists("basecomm");
 
 	gH_DB = GOKZ_DB_GetDatabase();
-
-	for (int client = 1; client < MaxClients; client++)
-	{
-		if (IsValidClient(client) && !IsFakeClient(client))
-		{
-			UpdateTags(client, GOKZ_GetCoreOption(client, Option_Mode));
-		}
-	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -160,27 +150,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Continue;
 }
 
-public void GOKZ_OnOptionsLoaded(int client)
-{
-	if (IsValidClient(client) && !IsFakeClient(client) && gB_Profile)
-	{
-		int mode = GOKZ_GetCoreOption(client, Option_Mode);
-		UpdateTags(client, GOKZ_PF_GetRank(client, mode));
-	}
-}
-
-public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
-{
-	Option coreOption;
-	if (GOKZ_IsCoreOption(option, coreOption) && coreOption == Option_Mode)
-	{
-		UpdateTags(client, newValue);
-	}
-	else if (StrEqual(option, gC_ProfileOptionNames[ProfileOption_ShowRankChat], true))
-	{
-		UpdateTags(client, GOKZ_GetCoreOption(client, Option_Mode));
-	}
-}
 
 public void OnCompletionLoaded(int client, float completion)
 {
@@ -267,18 +236,32 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 
 	char coloredName[MAX_NAME_LENGTH * 2];
 	Completion_GetClientName(client, coloredName, sizeof(coloredName));
+	
+	char rankTag[64];
+	FormatEx(rankTag, sizeof(rankTag), "[%s] ", gC_ModeNamesShort[GOKZ_GetCoreOption(client, Option_Mode)]);
+	char colorRankTag[64] = "{default}";
+	if (gB_Profile)
+	{
+		int rank = GOKZ_PF_GetRank(client, GOKZ_GetCoreOption(client, Option_Mode));
+		if (rank != -1 &&
+			GOKZ_GetOption(client, gC_ProfileOptionNames[ProfileOption_ShowRankChat]) == ProfileOptionBool_Enabled)
+		{
+			FormatEx(rankTag, sizeof(rankTag), "[%s %s] ", gC_ModeNamesShort[GOKZ_GetCoreOption(client, Option_Mode)], gC_rankName[rank]);
+			FormatEx(colorRankTag, sizeof(colorRankTag), gC_rankColor[rank]);
+		}
+	}
 
 	if (IsSpectating(client))
 	{
 		SendChatFilter(client, "%s%s%s {default}*%s{default}: %s",
-							gC_PlayerTagColors[client], gC_PlayerTags[client], tags, coloredName, sanitisedMessage);
+							colorRankTag, rankTag, tags, coloredName, sanitisedMessage);
 		PrintToConsoleAll("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
 		PrintToServer("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
 	}
 	else
 	{
 		SendChatFilter(client, "%s%s%s %s{default}: %s",
-							gC_PlayerTagColors[client], gC_PlayerTags[client], tags, coloredName, sanitisedMessage);
+							colorRankTag, rankTag, tags, coloredName, sanitisedMessage);
 		PrintToConsoleAll("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
 		PrintToServer("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
 	}
