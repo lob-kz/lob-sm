@@ -1,1 +1,1 @@
-#define LOB_VERSION "v1.1.0"
+#define LOB_VERSION "v1.2.0"
