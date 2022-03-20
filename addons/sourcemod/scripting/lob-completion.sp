@@ -31,8 +31,9 @@ public Plugin myinfo =
 	version = LOB_VERSION
 };
 
-bool gB_BaseComm;
+bool gB_LateLoad;
 
+bool gB_BaseComm;
 bool gB_Profile;
 char gC_PlayerTags[MAXPLAYERS + 1][32];
 char gC_PlayerTagColors[MAXPLAYERS + 1][16];
@@ -60,6 +61,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNatives();
 	RegPluginLibrary("lob-completion");
+	gB_LateLoad = late;
 	return APLRes_Success;
 }
 
@@ -78,6 +80,16 @@ public void OnAllPluginsLoaded()
 	gB_BaseComm = LibraryExists("basecomm");
 
 	gH_DB = GOKZ_DB_GetDatabase();
+	if (gB_LateLoad)
+	{
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client) && !IsFakeClient(client) && IsClientAuthorized(client))
+			{
+				DB_LoadCompletion(client);
+			}
+		}
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
