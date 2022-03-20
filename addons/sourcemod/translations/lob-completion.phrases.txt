@@ -1,0 +1,28 @@
+"Phrases"
+{
+	// =====[ CHAT MESSAGES ]=====
+	"Completion Top - No Times"
+	{
+		"en"		"{grey}No one has beaten a ranked map on this server... yet."
+		"chi"		"{grey}本服暂未有人完成排名地图."
+		"ru"		"{grey}Никто еще не проходил ранжированную карту на этом сервере... пока."
+	}
+
+	// =====[ WHITELIST MESSAGES ]=====
+	"Kick - Completion And VIP"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"This server requires VIP, or you to complete at least {1}％ of maps on public Loaf of Bread servers"
+	}
+	"Kick - VIP"
+	{
+		"en"		"This server requires VIP"
+	}
+
+
+	// =====[ COMPLETION TOP MENU ]=====
+	"Completion Top Menu - Title"
+	{
+		"en"		"Completion Top\n "
+	}
+}
