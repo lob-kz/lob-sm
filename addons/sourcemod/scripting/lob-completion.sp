@@ -53,7 +53,7 @@ ConVar gCV_whitelist_completion;
 #include "lob-completion/db/helpers.sp"
 #include "lob-completion/db/load_completion.sp"
 #include "lob-completion/db/completion_top.sp"
-
+#include "lob-completion/profiles.sp"
 
 
 // =====[ PLUGIN EVENTS ]=====
@@ -152,6 +152,15 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Continue;
 }
 
+public void GOKZ_OnOptionsLoaded(int client)
+{
+	if (IsValidClient(client) && !IsFakeClient(client) && gB_Profile)
+	{
+		int mode = GOKZ_GetCoreOption(client, Option_Mode);
+		UpdateTags(client, GOKZ_PF_GetRank(client, mode));
+	}
+}
+
 public void OnCompletionLoaded(int client, float completion)
 {
 	int mode = gCV_whitelist_mode.IntValue;
@@ -242,8 +251,8 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 	{
 		SendChatFilter(client, "%s%s%s {default}*%s{default}: %s",
 							gC_PlayerTagColors[client], gC_PlayerTags[client], tags, coloredName, sanitisedMessage);
-		PrintToConsoleAll("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
-		PrintToServer("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		PrintToConsoleAll("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		PrintToServer("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
 	}
 	else
 	{

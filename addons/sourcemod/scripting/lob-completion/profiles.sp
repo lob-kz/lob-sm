@@ -16,28 +16,25 @@ public void GOKZ_GL_OnPointsUpdated(int client, int mode)
 	{
 		if (points == -1)
 		{
-			UpdateTags(client, -1, mode);
+			UpdateTags(client, -1);
 		}
 		else
 		{
-			UpdateTags(client, rank, mode);
+			UpdateTags(client, rank);
 		}
 	}
 }
 
-void UpdateTags(int client, int rank, int mode)
+void UpdateTags(int client, int rank)
 {
-	if (gB_Chat)
+	if (rank != -1 &&
+		GOKZ_GetOption(client, gC_ProfileOptionNames[ProfileOption_ShowRankChat]) == ProfileOptionBool_Enabled)
 	{
-		if (rank != -1 &&
-			GOKZ_GetOption(client, gC_ProfileOptionNames[ProfileOption_ShowRankChat]) == ProfileOptionBool_Enabled)
-		{
-			SetChatTag(client, gC_rankName[rank], gC_rankColor[rank]);
-		}
-		else
-		{
-			SetChatTag(client, "", "{default}");
-		}
+		SetChatTag(client, gC_rankName[rank], gC_rankColor[rank]);
+	}
+	else
+	{
+		SetChatTag(client, "", "{default}");
 	}
 }
 
