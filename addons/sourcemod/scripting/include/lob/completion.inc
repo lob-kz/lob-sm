@@ -13,6 +13,24 @@
 #define LOB_CHATCOLOR_ADMIN 0x04 // green
 #define LOB_CHATCOLOR_DONOR 0x07 // red
 #define LOB_CHATCOLOR_VIP 0x0C // dark blue
+#define LOB_COMPLETION_CATEGORY "LoB - Completion"
+
+enum CompletionOption:
+{
+	COMPLETIONOPTION_INVALID = -1, 
+	CompletionOption_ChatTag,
+	COMPLETIONOPTION_COUNT
+};
+
+enum
+{
+	ChatTag_Owner = 0,
+	ChatTag_Admin,
+	ChatTag_DONOR,
+	ChatTag_VIP,
+	ChatTag_None,
+	CHATTAG_COUNT
+}
 
 stock int gI_ChatColors[LOB_CHATCOLOR_COUNT] =
 {
@@ -53,6 +71,40 @@ stock float gF_ChatColorCompletionRequired[LOB_CHATCOLOR_COUNT] =
 	40.0,
 	50.0,
 	// + rainbow at 1000 maps
+};
+
+stock char gC_CompletionOptionNames[COMPLETIONOPTION_COUNT][] = 
+{
+	"LOB Completion - Chat Tag",
+};
+
+stock char gC_CompletionOptionDescriptions[COMPLETIONOPTION_COUNT][] = 
+{
+	"Chat Tag - 0 = Owner, 1 = Admin, 2 = Donor, 3 = VIP, 4 = None"
+};
+
+stock char gC_CompletionOptionPhrases[COMPLETIONOPTION_COUNT][] = 
+{
+	"Options Menu - Chat Tag"
+};
+
+stock int gI_CompletionOptionCounts[COMPLETIONOPTION_COUNT] = 
+{
+	CHATTAG_COUNT
+};
+
+stock int gI_CompletionOptionDefaults[COMPLETIONOPTION_COUNT] = 
+{
+	ChatTag_Owner
+};
+
+stock char gC_CompletionChatTagPhrases[CHATTAG_COUNT][] = 
+{
+	"Options Menu - OWNER",
+	"Options Menu - ADMIN",
+	"Options Menu - DONOR",
+	"Options Menu - VIP",
+	"Options Menu - None"
 };
 
 stock void GOKZ_LOB_FormatChatName(char[] buffer, int maxlength, const char[] name, float completionPercent, int completionCount, bool smColors = false)

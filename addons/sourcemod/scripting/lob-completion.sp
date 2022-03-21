@@ -15,7 +15,6 @@
 #undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <basecomm>
-#include <gokz/global>
 #include <gokz/profile>
 
 #define REQUIRE_EXTENSIONS
@@ -32,8 +31,9 @@ public Plugin myinfo =
 	version = LOB_VERSION
 };
 
-bool gB_BaseComm;
+bool gB_LateLoad;
 
+bool gB_BaseComm;
 bool gB_Profile;
 char gC_PlayerTags[MAXPLAYERS + 1][32];
 char gC_PlayerTagColors[MAXPLAYERS + 1][16];
@@ -53,8 +53,7 @@ ConVar gCV_whitelist_completion;
 #include "lob-completion/db/helpers.sp"
 #include "lob-completion/db/load_completion.sp"
 #include "lob-completion/db/completion_top.sp"
-#include "lob-completion/profiles.sp"
-
+#include "lob-completion/gokz-options.sp"
 
 // =====[ PLUGIN EVENTS ]=====
 
@@ -62,6 +61,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNatives();
 	RegPluginLibrary("lob-completion");
+	gB_LateLoad = late;
 	return APLRes_Success;
 }
 
@@ -80,6 +80,23 @@ public void OnAllPluginsLoaded()
 	gB_BaseComm = LibraryExists("basecomm");
 
 	gH_DB = GOKZ_DB_GetDatabase();
+	if (gB_LateLoad)
+	{
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client) && !IsFakeClient(client) && IsClientAuthorized(client))
+			{
+				CheckClientTag(client);
+				DB_LoadCompletion(client);
+			}
+		}
+	}
+	
+	TopMenu topMenu;
+	if (LibraryExists("gokz-core") && ((topMenu = GOKZ_GetOptionsTopMenu()) != null))
+	{
+		GOKZ_OnOptionsMenuReady(topMenu);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -97,6 +114,30 @@ public void OnLibraryRemoved(const char[] name)
 
 
 // =====[ OTHER EVENTS ]=====
+
+public void GOKZ_OnOptionsMenuCreated(TopMenu topMenu)
+{
+	OnOptionsMenuCreated_OptionsMenu(topMenu);
+}
+
+public void GOKZ_OnOptionsMenuReady(TopMenu topMenu)
+{
+	OnOptionsMenuReady_Options();
+	OnOptionsMenuReady_OptionsMenu(topMenu);
+}
+
+public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
+{
+	if (StrEqual(option, gC_CompletionOptionNames[CompletionOption_ChatTag], true))
+	{
+		CheckClientTag(client);
+	}
+}
+
+public void GOKZ_OnOptionsLoaded(int client)
+{
+	CheckClientTag(client);
+}
 
 public void GOKZ_DB_OnDatabaseConnect(DatabaseType DBType)
 {
@@ -139,6 +180,7 @@ public void OnClientConnected(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
+	CheckClientTag(client);
 	DB_LoadCompletion(client);
 }
 
@@ -152,14 +194,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Continue;
 }
 
-public void GOKZ_OnOptionsLoaded(int client)
-{
-	if (IsValidClient(client) && !IsFakeClient(client) && gB_Profile)
-	{
-		int mode = GOKZ_GetCoreOption(client, Option_Mode);
-		UpdateTags(client, GOKZ_PF_GetRank(client, mode));
-	}
-}
 
 public void OnCompletionLoaded(int client, float completion)
 {
@@ -249,17 +283,15 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 
 	if (IsSpectating(client))
 	{
-		SendChatFilter(client, "%s%s%s {default}*%s{default}: %s",
-							gC_PlayerTagColors[client], gC_PlayerTags[client], tags, coloredName, sanitisedMessage);
-		PrintToConsoleAll("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
-		PrintToServer("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		SendChatFilter(client, "%s{default}*%s{default}: %s", tags, coloredName, sanitisedMessage);
+		PrintToConsoleAll("%s*%s: %s", tags, sanitisedName, sanitisedMessage);
+		PrintToServer("%s*%s: %s", tags, sanitisedName, sanitisedMessage);
 	}
 	else
 	{
-		SendChatFilter(client, "%s%s%s %s{default}: %s",
-							gC_PlayerTagColors[client], gC_PlayerTags[client], tags, coloredName, sanitisedMessage);
-		PrintToConsoleAll("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
-		PrintToServer("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		SendChatFilter(client, "%s %s{default}: %s", tags, coloredName, sanitisedMessage);
+		PrintToConsoleAll("%s%s: %s", tags, sanitisedName, sanitisedMessage);
+		PrintToServer("%s%s: %s", tags, sanitisedName, sanitisedMessage);
 	}
 }
 
@@ -277,24 +309,51 @@ void SendChatFilter(int sender, const char[] format, any...)
 	}
 }
 
-void GetClientChatTags(int client, char[] buffer, int maxlength)
+void CheckClientTag(int client)
 {
 	int flags = GetUserFlagBits(client);
-	if (flags & ADMFLAG_ROOT)
+	int value = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+	switch (value)
 	{
-		FormatEx(buffer, maxlength, "%cOWNER", LOB_CHATCOLOR_OWNER);
+		case ChatTag_Owner:
+		{
+			if (!(flags & ADMFLAG_ROOT))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_Admin:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_KICK)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_DONOR:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_CUSTOM2)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_VIP:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_CUSTOM1)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
 	}
-	else if (flags & ADMFLAG_KICK)
+}
+void GetClientChatTags(int client, char[] buffer, int maxlength)
+{
+	int tag = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+	switch (tag)
 	{
-		FormatEx(buffer, maxlength, "%cADMIN", LOB_CHATCOLOR_ADMIN);
-	}
-	else if (flags & ADMFLAG_CUSTOM2)
-	{
-		FormatEx(buffer, maxlength, "%cDONOR", LOB_CHATCOLOR_DONOR);
-	}
-	else if (flags & ADMFLAG_CUSTOM1)
-	{
-		FormatEx(buffer, maxlength, "%cVIP", LOB_CHATCOLOR_VIP);
+		case ChatTag_Owner: FormatEx(buffer, maxlength, "%cOWNER", LOB_CHATCOLOR_OWNER);
+		case ChatTag_Admin: FormatEx(buffer, maxlength, "%cADMIN", LOB_CHATCOLOR_ADMIN);
+		case ChatTag_DONOR: FormatEx(buffer, maxlength, "%cDONOR", LOB_CHATCOLOR_DONOR);
+		case ChatTag_VIP: FormatEx(buffer, maxlength, "%cVIP", LOB_CHATCOLOR_VIP);
 	}
 }
 
@@ -334,3 +393,19 @@ void Completion_GetClientName(int client, char[] buffer, int size)
 	GOKZ_LOB_FormatChatName(buffer, size, sanitisedName, gF_Completion[client], gI_CompletionCount[client], true);
 }
 
+
+// =====[ OPTIONS ]=====
+
+void OnOptionsMenuReady_Options()
+{
+	RegisterOptions();
+}
+
+void RegisterOptions()
+{
+	for (CompletionOption option; option < COMPLETIONOPTION_COUNT; option++)
+	{
+		GOKZ_RegisterOption(gC_CompletionOptionNames[option], gC_CompletionOptionDescriptions[option], 
+			OptionType_Int, gI_CompletionOptionDefaults[option], 0, gI_CompletionOptionCounts[option] - 1);
+	}
+}
