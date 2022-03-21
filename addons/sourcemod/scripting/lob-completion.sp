@@ -53,7 +53,7 @@ ConVar gCV_whitelist_completion;
 #include "lob-completion/db/helpers.sp"
 #include "lob-completion/db/load_completion.sp"
 #include "lob-completion/db/completion_top.sp"
-
+#include "lob-completion/gokz-options.sp"
 
 // =====[ PLUGIN EVENTS ]=====
 
@@ -90,6 +90,12 @@ public void OnAllPluginsLoaded()
 			}
 		}
 	}
+	
+	TopMenu topMenu;
+	if (LibraryExists("gokz-core") && ((topMenu = GOKZ_GetOptionsTopMenu()) != null))
+	{
+		GOKZ_OnOptionsMenuReady(topMenu);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -107,6 +113,30 @@ public void OnLibraryRemoved(const char[] name)
 
 
 // =====[ OTHER EVENTS ]=====
+
+public void GOKZ_OnOptionsMenuCreated(TopMenu topMenu)
+{
+	OnOptionsMenuCreated_OptionsMenu(topMenu);
+}
+
+public void GOKZ_OnOptionsMenuReady(TopMenu topMenu)
+{
+	OnOptionsMenuReady_Options();
+	OnOptionsMenuReady_OptionsMenu(topMenu);
+}
+
+public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
+{
+	if (StrEqual(option, gC_CompletionOptionNames[CompletionOption_ChatTag], true))
+	{
+		CheckClientTag(client);
+	}
+}
+
+public void GOKZ_OnOptionsLoaded(int client)
+{
+	CheckClientTag(client);
+}
 
 public void GOKZ_DB_OnDatabaseConnect(DatabaseType DBType)
 {
@@ -248,34 +278,18 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 
 	char coloredName[MAX_NAME_LENGTH * 2];
 	Completion_GetClientName(client, coloredName, sizeof(coloredName));
-	
-	char rankTag[64];
-	FormatEx(rankTag, sizeof(rankTag), "[%s] ", gC_ModeNamesShort[GOKZ_GetCoreOption(client, Option_Mode)]);
-	char colorRankTag[64] = "{default}";
-	if (gB_Profile)
-	{
-		int rank = GOKZ_PF_GetRank(client, GOKZ_GetCoreOption(client, Option_Mode));
-		if (rank != -1 &&
-			GOKZ_GetOption(client, gC_ProfileOptionNames[ProfileOption_ShowRankChat]) == ProfileOptionBool_Enabled)
-		{
-			FormatEx(rankTag, sizeof(rankTag), "[%s %s] ", gC_ModeNamesShort[GOKZ_GetCoreOption(client, Option_Mode)], gC_rankName[rank]);
-			FormatEx(colorRankTag, sizeof(colorRankTag), gC_rankColor[rank]);
-		}
-	}
 
 	if (IsSpectating(client))
 	{
-		SendChatFilter(client, "%s%s%s {default}*%s{default}: %s",
-							colorRankTag, rankTag, tags, coloredName, sanitisedMessage);
-		PrintToConsoleAll("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
-		PrintToServer("%s%s *%s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		SendChatFilter(client, "%s{default}*%s{default}: %s", tags, coloredName, sanitisedMessage);
+		PrintToConsoleAll("%s*%s: %s", tags, sanitisedName, sanitisedMessage);
+		PrintToServer("%s*%s: %s", tags, sanitisedName, sanitisedMessage);
 	}
 	else
 	{
-		SendChatFilter(client, "%s%s%s %s{default}: %s",
-							colorRankTag, rankTag, tags, coloredName, sanitisedMessage);
-		PrintToConsoleAll("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
-		PrintToServer("* %s%s %s : %s", gC_PlayerTags[client], tags, sanitisedName, sanitisedMessage);
+		SendChatFilter(client, "%s %s{default}: %s", tags, coloredName, sanitisedMessage);
+		PrintToConsoleAll("%s%s: %s", tags, sanitisedName, sanitisedMessage);
+		PrintToServer("%s%s: %s", tags, sanitisedName, sanitisedMessage);
 	}
 }
 
@@ -293,24 +307,51 @@ void SendChatFilter(int sender, const char[] format, any...)
 	}
 }
 
-void GetClientChatTags(int client, char[] buffer, int maxlength)
+void CheckClientTag(int client)
 {
 	int flags = GetUserFlagBits(client);
-	if (flags & ADMFLAG_ROOT)
+	int value = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+	switch (value)
 	{
-		FormatEx(buffer, maxlength, "%cOWNER", LOB_CHATCOLOR_OWNER);
+		case ChatTag_Owner:
+		{
+			if (!(flags & ADMFLAG_ROOT))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_Admin:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_KICK)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_DONOR:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_CUSTOM2)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
+		case ChatTag_VIP:
+		{
+			if (!(flags & (ADMFLAG_ROOT | ADMFLAG_CUSTOM1)))
+			{
+				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+			}
+		}
 	}
-	else if (flags & ADMFLAG_KICK)
+}
+void GetClientChatTags(int client, char[] buffer, int maxlength)
+{
+	int tag = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
+	switch (tag)
 	{
-		FormatEx(buffer, maxlength, "%cADMIN", LOB_CHATCOLOR_ADMIN);
-	}
-	else if (flags & ADMFLAG_CUSTOM2)
-	{
-		FormatEx(buffer, maxlength, "%cDONOR", LOB_CHATCOLOR_DONOR);
-	}
-	else if (flags & ADMFLAG_CUSTOM1)
-	{
-		FormatEx(buffer, maxlength, "%cVIP", LOB_CHATCOLOR_VIP);
+		case ChatTag_Owner: FormatEx(buffer, maxlength, "%cOWNER", LOB_CHATCOLOR_OWNER);
+		case ChatTag_Admin: FormatEx(buffer, maxlength, "%cADMIN", LOB_CHATCOLOR_ADMIN);
+		case ChatTag_DONOR: FormatEx(buffer, maxlength, "%cDONOR", LOB_CHATCOLOR_DONOR);
+		case ChatTag_VIP: FormatEx(buffer, maxlength, "%cVIP", LOB_CHATCOLOR_VIP);
 	}
 }
 
@@ -350,3 +391,19 @@ void Completion_GetClientName(int client, char[] buffer, int size)
 	GOKZ_LOB_FormatChatName(buffer, size, sanitisedName, gF_Completion[client], gI_CompletionCount[client], true);
 }
 
+
+// =====[ OPTIONS ]=====
+
+void OnOptionsMenuReady_Options()
+{
+	RegisterOptions();
+}
+
+void RegisterOptions()
+{
+	for (CompletionOption option; option < COMPLETIONOPTION_COUNT; option++)
+	{
+		GOKZ_RegisterOption(gC_CompletionOptionNames[option], gC_CompletionOptionDescriptions[option], 
+			OptionType_Int, gI_CompletionOptionDefaults[option], 0, gI_CompletionOptionCounts[option] - 1);
+	}
+}

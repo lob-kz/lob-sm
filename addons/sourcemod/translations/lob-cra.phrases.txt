@@ -1,0 +1,35 @@
+"Phrases"
+{
+	//=====[ MENU ]=====
+	"Options Menu - Cross Record Announcement"
+	{
+		"en"		"LoB - Cross Record Announcement"
+	}
+	"Options Menu - Announcement Volume"
+	{
+		"en"		"Announcement Volume"
+	}
+	"Options Menu - Record Type"
+	{
+		"en"		"Record Sound"
+	}
+
+
+	//=====[ ANNOUNCE TYPE ]=====
+	"Options Menu - None"
+	{
+		"en"		"None"
+	}
+	"Options Menu - Local"
+	{
+		"en"		"Local Only"
+	}
+	"Options Menu - Global"
+	{
+		"en"		"Global Only"
+	}
+	"Options Menu - Both"
+	{
+		"en"		"Both"
+	}
+}

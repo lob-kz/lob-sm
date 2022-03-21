@@ -25,4 +25,37 @@
 	{
 		"en"		"Completion Top\n "
 	}
+
+	//=====[ OPTIONS MENU ]=====
+	"Options Menu - Completion"
+	{
+		"en"		"LoB - Completion"
+	}
+	"Options Menu - Chat Tag"
+	{
+		"en"		"Chat Tag"
+	}
+
+
+	//=====[ TAGS ]=====
+	"Options Menu - None"
+	{
+		"en"		"None"
+	}
+	"Options Menu - VIP"
+	{
+		"en"		"VIP"
+	}
+	"Options Menu - DONOR"
+	{
+		"en"		"Donor"
+	}
+	"Options Menu - ADMIN"
+	{
+		"en"		"Admin"
+	}
+	"Options Menu - OWNER"
+	{
+		"en"		"Owner"
+	}
 }
