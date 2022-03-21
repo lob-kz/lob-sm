@@ -35,6 +35,7 @@ bool gB_LateLoad;
 
 bool gB_BaseComm;
 bool gB_Profile;
+bool gB_ClientTagLoaded[MAXPLAYERS + 1];
 char gC_PlayerTags[MAXPLAYERS + 1][32];
 char gC_PlayerTagColors[MAXPLAYERS + 1][16];
 
@@ -136,7 +137,10 @@ public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
 
 public void GOKZ_OnOptionsLoaded(int client)
 {
-	CheckClientTag(client);
+	if (IsClientInGame(client) && IsClientAuthorized(client))
+	{
+		CheckClientTag(client);
+	}
 }
 
 public void GOKZ_DB_OnDatabaseConnect(DatabaseType DBType)
@@ -275,8 +279,11 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 	}
 
 	char tags[32];
-	GetClientChatTags(client, tags, sizeof(tags));
-	StrCat(tags, sizeof(tags), " "); // Add space
+	if (gB_ClientTagLoaded[client])
+	{
+		GetClientChatTags(client, tags, sizeof(tags));
+		StrCat(tags, sizeof(tags), " "); // Add space
+	}
 
 	char coloredName[MAX_NAME_LENGTH * 2];
 	Completion_GetClientName(client, coloredName, sizeof(coloredName));
@@ -311,6 +318,7 @@ void SendChatFilter(int sender, const char[] format, any...)
 
 void CheckClientTag(int client)
 {
+	gB_ClientTagLoaded[client] = true;
 	int flags = GetUserFlagBits(client);
 	int value = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
 	switch (value)
