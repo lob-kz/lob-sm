@@ -24,11 +24,11 @@ enum CompletionOption:
 
 enum
 {
-	ChatTag_None = 0,
-	ChatTag_VIP,
-	ChatTag_DONOR,
+	ChatTag_Owner = 0,
 	ChatTag_Admin,
-	ChatTag_Owner,
+	ChatTag_DONOR,
+	ChatTag_VIP,
+	ChatTag_None,
 	CHATTAG_COUNT
 }
 
@@ -80,7 +80,7 @@ stock char gC_CompletionOptionNames[COMPLETIONOPTION_COUNT][] =
 
 stock char gC_CompletionOptionDescriptions[COMPLETIONOPTION_COUNT][] = 
 {
-	"Chat Tag - 0 = None, 1 = VIP, 2 = DONOR, 3 = OWNER"
+	"Chat Tag - 0 = Owner, 1 = Admin, 2 = Donor, 3 = VIP, 4 = None"
 };
 
 stock char gC_CompletionOptionPhrases[COMPLETIONOPTION_COUNT][] = 
@@ -100,11 +100,11 @@ stock int gI_CompletionOptionDefaults[COMPLETIONOPTION_COUNT] =
 
 stock char gC_CompletionChatTagPhrases[CHATTAG_COUNT][] = 
 {
-	"Options Menu - None",
-	"Options Menu - VIP",
-	"Options Menu - DONOR",
+	"Options Menu - OWNER",
 	"Options Menu - ADMIN",
-	"Options Menu - OWNER"
+	"Options Menu - DONOR",
+	"Options Menu - VIP",
+	"Options Menu - None"
 };
 
 stock void GOKZ_LOB_FormatChatName(char[] buffer, int maxlength, const char[] name, float completionPercent, int completionCount, bool smColors = false)

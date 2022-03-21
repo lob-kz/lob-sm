@@ -86,6 +86,7 @@ public void OnAllPluginsLoaded()
 		{
 			if (IsClientInGame(client) && !IsFakeClient(client) && IsClientAuthorized(client))
 			{
+				CheckClientTag(client);
 				DB_LoadCompletion(client);
 			}
 		}
@@ -179,6 +180,7 @@ public void OnClientConnected(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
+	CheckClientTag(client);
 	DB_LoadCompletion(client);
 }
 
