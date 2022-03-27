@@ -40,7 +40,7 @@ public void DB_TxnSuccess_LoadCompletion(Handle db, int userid, int numQueries, 
 	int totalCourses = SQL_FetchInt(results[1], 0);
  
 	float completion = (completedCourses / float(totalCourses)) * 100.0;
-
+	PrintToServer("%i, %i", completedCourses, totalCourses);
 	gF_Completion[client] = completion;
 	gI_CompletionCount[client] = completedCourses;
 	OnCompletionLoaded(client, completion);

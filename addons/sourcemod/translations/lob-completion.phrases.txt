@@ -35,7 +35,10 @@
 	{
 		"en"		"Chat Tag"
 	}
-
+	"Options Menu - Chat Name Color"
+	{
+		"en"		"Chat Color"
+	}
 
 	//=====[ TAGS ]=====
 	"Options Menu - None"
@@ -57,5 +60,47 @@
 	"Options Menu - OWNER"
 	{
 		"en"		"Owner"
+	}
+
+	//=====[ COLORS ]=====
+	"Options Menu - Default"
+	{
+		"en"		"Default"
+	}
+	"Options Menu - Blue Grey"
+	{
+		"en"		"Blue Grey"
+	}
+	"Options Menu - Blue"
+	{
+		"en"		"Blue"
+	}
+	"Options Menu - Yellow"
+	{
+		"en"		"Yellow"
+	}
+	"Options Menu - Gold"
+	{
+		"en"		"Gold"
+	}
+	"Options Menu - Light Green"
+	{
+		"en"		"Light Green"
+	}
+	"Options Menu - Lime"
+	{
+		"en"		"Lime"
+	}
+	"Options Menu - Light Red"
+	{
+		"en"		"Light Red"
+	}
+	"Options Menu - Dark Red"
+	{
+		"en"		"Dark Red"
+	}
+	"Options Menu - Rainbow"
+	{
+		"en"		"Rainbow"
 	}
 }
