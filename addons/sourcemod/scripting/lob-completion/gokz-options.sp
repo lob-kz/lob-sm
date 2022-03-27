@@ -27,7 +27,6 @@ void OnOptionsMenuReady_OptionsMenu(TopMenu topMenu)
 	
 	topMenuOptions = topMenu;
 	
-	// Add gokz-paint option items	
 	for (int option = 0; option < view_as<int>(COMPLETIONOPTION_COUNT); option++)
 	{
 		itemsCompletion[option] = topMenuOptions.AddItem(gC_CompletionOptionNames[option], TopMenuHandler_Completion, catCompletion);
@@ -71,6 +70,12 @@ public void TopMenuHandler_Completion(TopMenu topmenu, TopMenuAction action, Top
 				FormatEx(buffer, maxlength, "%T - %T",
 					gC_CompletionOptionPhrases[option], param,
 					gC_CompletionChatTagPhrases[GOKZ_GetOption(param, gC_CompletionOptionNames[option])], param);
+			}
+			case CompletionOption_ChatColor:
+			{
+				FormatEx(buffer, maxlength, "%T - %T",
+					gC_CompletionOptionPhrases[option], param,
+					gC_CompletionChatColorPhrases[GOKZ_GetOption(param, gC_CompletionOptionNames[option])], param);
 			}
 		}
 	}
