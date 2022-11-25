@@ -1,0 +1,8 @@
+"Phrases"
+{
+	"Uptime"
+	{
+		"#format"	"{1:s}"
+		"en"		"{grey}Map uptime: {default}{1}"
+	}
+}
