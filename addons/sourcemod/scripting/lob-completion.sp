@@ -15,7 +15,6 @@
 #undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <basecomm>
-#include <gokz/profile>
 
 #define REQUIRE_EXTENSIONS
 #define REQUIRE_PLUGIN
@@ -35,11 +34,13 @@ bool gB_LateLoad;
 
 bool gB_BaseComm;
 bool gB_Profile;
+bool gB_ClientTagLoaded[MAXPLAYERS + 1];
 char gC_PlayerTags[MAXPLAYERS + 1][32];
 char gC_PlayerTagColors[MAXPLAYERS + 1][16];
 
 Database gH_DB;
 
+bool gB_ClientColorLoaded[MAXPLAYERS + 1];
 float gF_Completion[MAXPLAYERS + 1];
 int gI_CompletionCount[MAXPLAYERS + 1];
 
@@ -132,11 +133,19 @@ public void GOKZ_OnOptionChanged(int client, const char[] option, any newValue)
 	{
 		CheckClientTag(client);
 	}
+	if (StrEqual(option, gC_CompletionOptionNames[CompletionOption_ChatColor], true))
+	{
+		CheckClientNameColor(client);
+	}
 }
 
 public void GOKZ_OnOptionsLoaded(int client)
 {
-	CheckClientTag(client);
+	if (IsClientInGame(client) && IsClientAuthorized(client))
+	{
+		CheckClientTag(client);
+		CheckClientNameColor(client);
+	}
 }
 
 public void GOKZ_DB_OnDatabaseConnect(DatabaseType DBType)
@@ -197,6 +206,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 public void OnCompletionLoaded(int client, float completion)
 {
+	CheckClientNameColor(client);
 	int mode = gCV_whitelist_mode.IntValue;
 	if (mode == WhiteListMode_Off)
 	{
@@ -275,8 +285,11 @@ void OnClientSayCommand_ChatProcessing(int client, const char[] command, const c
 	}
 
 	char tags[32];
-	GetClientChatTags(client, tags, sizeof(tags));
-	StrCat(tags, sizeof(tags), " "); // Add space
+	if (gB_ClientTagLoaded[client])
+	{
+		GetClientChatTags(client, tags, sizeof(tags));
+		StrCat(tags, sizeof(tags), " "); // Add space
+	}
 
 	char coloredName[MAX_NAME_LENGTH * 2];
 	Completion_GetClientName(client, coloredName, sizeof(coloredName));
@@ -309,8 +322,40 @@ void SendChatFilter(int sender, const char[] format, any...)
 	}
 }
 
+bool UsedBaseChat(int client, const char[] command, const char[] message)
+{
+	// Assuming base chat is in use, check if message will get processed by basechat
+	if (message[0] != '@')
+	{
+		return false;
+	}
+	
+	if (strcmp(command, "say_team", false) == 0)
+	{
+		return true;
+	}
+	else if (strcmp(command, "say", false) == 0 && CheckCommandAccess(client, "sm_say", ADMFLAG_CHAT))
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+void SanitiseChatInput(char[] message, int maxlength)
+{
+	Color_StripFromChatText(message, message, maxlength);
+	CRemoveColors(message, maxlength);
+	// Chat gets double formatted, so replace '%' with '%%%%' to end up with '%'
+	ReplaceString(message, maxlength, "%", "%%%%");
+}
+
+// Chat tags
 void CheckClientTag(int client)
 {
+	// This can break if the plugin is late loaded right in between OnClientAuthorized and OnClientPostAdminCheck.
+	// But that is extremely unlikely anyway, considering late loading very rarely happens anyway.
+	gB_ClientTagLoaded[client] = true;
 	int flags = GetUserFlagBits(client);
 	int value = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
 	switch (value)
@@ -345,44 +390,63 @@ void CheckClientTag(int client)
 		}
 	}
 }
+
 void GetClientChatTags(int client, char[] buffer, int maxlength)
 {
 	int tag = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatTag]);
-	switch (tag)
-	{
-		case ChatTag_Owner: FormatEx(buffer, maxlength, "%cOWNER", LOB_CHATCOLOR_OWNER);
-		case ChatTag_Admin: FormatEx(buffer, maxlength, "%cADMIN", LOB_CHATCOLOR_ADMIN);
-		case ChatTag_DONOR: FormatEx(buffer, maxlength, "%cDONOR", LOB_CHATCOLOR_DONOR);
-		case ChatTag_VIP: FormatEx(buffer, maxlength, "%cVIP", LOB_CHATCOLOR_VIP);
-	}
+	FormatEx(buffer, maxlength, "%c%s", gC_CompletionChatTagColors[tag], gC_CompletionChatTagNames[tag]);
 }
 
-bool UsedBaseChat(int client, const char[] command, const char[] message)
+// Chat color
+void CheckClientNameColor(int client)
 {
-	// Assuming base chat is in use, check if message will get processed by basechat
-	if (message[0] != '@')
+	if (IsFakeClient(client))
 	{
-		return false;
+		return;
 	}
-	
-	if (strcmp(command, "say_team", false) == 0)
+	gB_ClientColorLoaded[client] = true;
+	int value = GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor]);
+	switch (value)
 	{
-		return true;
+		case ChatColor_Rainbow:
+		{
+			if (gI_CompletionCount[client] < 1000)
+			{
+				int maxColor;
+				for (int i = 0; i < LOB_CHATCOLOR_COUNT; i++)
+				{
+					if (gF_Completion[client] < gF_ChatColorCompletionRequired[i])
+					{
+						maxColor = i;
+					}
+					else
+					{
+						break;
+					}
+				}
+				GOKZ_SetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor], maxColor);
+			}
+		}
+		default:
+		{
+			if (gF_Completion[client] < gF_ChatColorCompletionRequired[value])
+			{
+				int maxColor;
+				for (int i = 0; i < LOB_CHATCOLOR_COUNT; i++)
+				{
+					if (gF_Completion[client] < gF_ChatColorCompletionRequired[i])
+					{
+						maxColor = i;
+					}
+					else
+					{
+						break;
+					}
+				}
+				GOKZ_SetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor], maxColor);
+			}
+		}
 	}
-	else if (strcmp(command, "say", false) == 0 && CheckCommandAccess(client, "sm_say", ADMFLAG_CHAT))
-	{
-		return true;
-	}
-	
-	return false;
-}
-
-void SanitiseChatInput(char[] message, int maxlength)
-{
-	Color_StripFromChatText(message, message, maxlength);
-	CRemoveColors(message, maxlength);
-	// Chat gets double formatted, so replace '%' with '%%%%' to end up with '%'
-	ReplaceString(message, maxlength, "%", "%%%%");
 }
 
 void Completion_GetClientName(int client, char[] buffer, int size)
@@ -390,7 +454,10 @@ void Completion_GetClientName(int client, char[] buffer, int size)
 	char sanitisedName[MAX_NAME_LENGTH];
 	GetClientName(client, sanitisedName, sizeof(sanitisedName));
 	SanitiseChatInput(sanitisedName, sizeof(sanitisedName));
-	GOKZ_LOB_FormatChatName(buffer, size, sanitisedName, gF_Completion[client], gI_CompletionCount[client], true);
+	if (gB_ClientColorLoaded[client])
+	{
+		GOKZ_LOB_FormatChatName(buffer, size, sanitisedName, GOKZ_GetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor]), gI_CompletionCount[client], true);
+	}
 }
 
 
