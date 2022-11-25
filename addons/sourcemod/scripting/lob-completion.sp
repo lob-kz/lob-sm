@@ -15,7 +15,6 @@
 #undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <basecomm>
-#include <gokz/profile>
 
 #define REQUIRE_EXTENSIONS
 #define REQUIRE_PLUGIN
@@ -413,14 +412,38 @@ void CheckClientNameColor(int client)
 		{
 			if (gI_CompletionCount[client] < 1000)
 			{
-				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor]);
+				int maxColor;
+				for (int i = 0; i < LOB_CHATCOLOR_COUNT; i++)
+				{
+					if (gF_Completion[client] < gF_ChatColorCompletionRequired[i])
+					{
+						maxColor = i;
+					}
+					else
+					{
+						break;
+					}
+				}
+				GOKZ_SetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor], maxColor);
 			}
 		}
 		default:
 		{
 			if (gF_Completion[client] < gF_ChatColorCompletionRequired[value])
 			{
-				GOKZ_CycleOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor]);
+				int maxColor;
+				for (int i = 0; i < LOB_CHATCOLOR_COUNT; i++)
+				{
+					if (gF_Completion[client] < gF_ChatColorCompletionRequired[i])
+					{
+						maxColor = i;
+					}
+					else
+					{
+						break;
+					}
+				}
+				GOKZ_SetOption(client, gC_CompletionOptionNames[CompletionOption_ChatColor], maxColor);
 			}
 		}
 	}
